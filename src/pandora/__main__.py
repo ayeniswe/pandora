@@ -15,7 +15,7 @@ def main() -> None:
     )
 
     # TODO read in user supplied env var sheet
-    env.setup_vars(info, {})
+    env.setup_vars(info, "")
 
 
 if __name__ == "__main__":

@@ -1,4 +1,6 @@
 """Error handling and message naming"""
+from pathlib import Path
+
 from .platforms.base import PlatformInfo
 
 
@@ -13,3 +15,7 @@ class Error:
     @staticmethod
     def PlatformUnsupported(info: PlatformInfo) -> ErrorMessage:
         return ErrorMessage(f"Unsupported platform: {info}")
+
+    @staticmethod
+    def ConfigNotFound(config: str | Path) -> ErrorMessage:
+        return ErrorMessage(f"config file not found: {config}")
