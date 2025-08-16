@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from .base import PlatformInfo, detect_platform, Arch, OSType, LinuxDistro
+from .base import Arch, LinuxDistro, OSType, PlatformInfo, detect_platform
 
 __all__ = [
     "Arch",

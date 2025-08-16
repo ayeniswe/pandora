@@ -18,8 +18,9 @@ repos:
     hooks:
       - id: codespell
         args: [--ignore-words-list=crate]
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.7.1
+  - repo: https://github.com/RobertCraigie/pyright-python
+    rev: v1.1.403
     hooks:
-      - id: mypy
-        additional_dependencies: [types-setuptools]
+      - id: pyright
+        additional_dependencies:
+          - distro

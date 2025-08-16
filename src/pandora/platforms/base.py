@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+import platform
 from dataclasses import dataclass
 from enum import Enum
-import platform
 from typing import Optional
 
 
@@ -65,7 +65,7 @@ def detect_platform() -> PlatformInfo:
         os_type = OSType.LINUX
         subtype: Optional[str]
         try:
-            import distro  # type: ignore[import-not-found]
+            import distro
 
             name = distro.id().lower()
             if name == "ubuntu":

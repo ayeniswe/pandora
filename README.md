@@ -4,17 +4,26 @@ Out-of-box dev env for any machine—online or offline. Skip setup headaches wit
 
 ## Development
 
-This repository uses [pre-commit](https://pre-commit.com) with Ruff, mypy and codespell to
-ensure code quality. Install the tooling and run the checks:
+This project is managed with [Poetry](https://python-poetry.org/).
+> Note: `pip install poetry poetry-plugin-shell` if you have not already
 
+### 1. Bootstrap the environment
 ```bash
-pip install pre-commit
-pre-commit run --files <files>
+# (optional) keep venv local to project
+poetry config virtualenvs.in-project true
+
+poetry install && poetry shell
+```
+
+### 2. Run the app
+```bash
+poetry run pandora 
 ```
 
 ## Packaging
 
 Executables can be produced with [PyInstaller](https://pyinstaller.org):
+> Note: `pip install pyinstaller` if you have not already
 
 ```bash
 scripts/package.sh

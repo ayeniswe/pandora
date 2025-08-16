@@ -3,6 +3,6 @@
 set -euo pipefail
 
 MODULE="pandora"
-ENTRY="src/pandora/__main__.py"
+ENTRY="src/pandora/launch.py"
 
-python -m pyinstaller --name "${MODULE}" --onefile "${ENTRY}"
+pyinstaller --name "${MODULE}" --onefile "${ENTRY}"
