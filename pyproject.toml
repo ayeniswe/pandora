@@ -9,19 +9,26 @@ description = "Cross-platform out-of-box development for offline/online operatio
 authors = ["Samson Ayeni"]
 readme = "README.md"
 license = "LICENSE"
-packages = [{ include = "pandora", from = "src" }]
+packages = [
+    { include = "pandora", from = "src" },
+    { include = "pandora_cli", from = "src" },
+]
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.15"
 distro = "^1.9"
 pyinstaller = "^6.15.0"
+typer = "^0.12.5"
+rich = "^13.7.1"
+questionary = "^2.0.1"
+click = ">=8.1,<8.2"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.7.0"
 poethepoet = "^0.32.0"
 
 [tool.poetry.scripts]
-pandora = "pandora.__main__:main"
+pandora = "pandora_cli.__main__:app"
 
 [tool.ruff]
 line-length = 100
