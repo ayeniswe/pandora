@@ -46,35 +46,37 @@ def test_setup_linux_vars_writes_exports(tmp_path: Path) -> None:
     assert bashrc.read_text() == expected
 
 
-def test_setup_windows_vars_sets_registry(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_setup_windows_vars(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[tuple[object, ...]] = []
 
-    def OpenKey(root: str, subkey: str, access: int | None = None) -> str:
-        calls.append(("OpenKey", root, subkey, access))
+    # Fake winreg with realistic signatures & constants
+    def OpenKey(root: int, subkey: str, reserved: int = 0, access: int = 0) -> str:
+        calls.append(("OpenKey", root, subkey, reserved, access))
         return "handle"
 
-    def SetValueEx(handle: str, key: str, reserved: int, typ: int, value: str) -> None:
-        calls.append(("SetValueEx", handle, key, reserved, typ, value))
+    def SetValueEx(handle: str, name: str, reserved: int, typ: int, value: str) -> None:
+        calls.append(("SetValueEx", handle, name, reserved, typ, value))
 
     def CloseKey(handle: str) -> None:
         calls.append(("CloseKey", handle))
 
-    dummy = types.SimpleNamespace(
-        HKEY_CURRENT_USER="HKEY",
-        KEY_SET_VALUE=1,
+    mock_winreg = types.SimpleNamespace(
+        HKEY_CURRENT_USER=0x80000001,
+        KEY_SET_VALUE=0x0002,
         REG_SZ=1,
         OpenKey=OpenKey,
         SetValueEx=SetValueEx,
         CloseKey=CloseKey,
     )
 
-    monkeypatch.setitem(sys.modules, "winreg", dummy)
-    _setup_windows_vars({"FOO": "BAR"})
-    assert (
-        "SetValueEx",
-        "handle",
-        "FOO",
-        0,
-        dummy.REG_SZ,
-        "BAR",
-    ) in calls
+    # Patch the module's reference to winreg
+    monkeypatch.setitem(sys.modules,"winreg", mock_winreg)
+
+    _setup_windows_vars({"FOO": "bar", "BIN": r"C:\bin"})
+
+    assert calls == [
+        ("OpenKey", 0x80000001, r"Environment", 0, 0x0002),
+        ("SetValueEx", "handle", "FOO", 0, 1, "bar"),
+        ("SetValueEx", "handle", "BIN", 0, 1, r"C:\bin"),
+        ("CloseKey", "handle"),
+    ]
