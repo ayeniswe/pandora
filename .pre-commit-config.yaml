@@ -24,3 +24,7 @@ repos:
       - id: pyright
         additional_dependencies:
           - distro
+          - typer
+          - rich
+          - questionary
+          - pytest

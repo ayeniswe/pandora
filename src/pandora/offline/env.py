@@ -1,8 +1,9 @@
 """Cross-platform environment setup such as: variables setting, etc."""
+# pyright: reportUnknownMemberType=false, reportUnknownVariableType=false, reportAttributeAccessIssue=false
 from pathlib import Path
 
 from pandora.common import WRITE_TAG
-from pandora.errors import Error, ErrorMessage
+from pandora.errors import Error
 from pandora.platforms.base import LinuxDistro, OSType, PlatformInfo
 
 
@@ -36,17 +37,17 @@ def config_reader(path: str | Path):
     return env_vars
 
 
-def setup_vars(info: PlatformInfo, conf: str | Path):
+def setup_vars(info: PlatformInfo, data: dict[str, str]):
     """Persist environment variables for the current user.
+
+    Args:
+        info: Detected platform information.
+        data: Mapping of environment variables to apply.
 
     On Linux, variables are appended to the user’s shell startup config (e.g. ~/.bashrc).
 
     On Windows, variables are written to the user environment registry.
     """
-    data = config_reader(conf)
-    if isinstance(data, ErrorMessage):
-        return data
-
     match info.os:
         case OSType.WINDOWS:
             return _setup_windows_vars(data)
@@ -61,18 +62,16 @@ def setup_vars(info: PlatformInfo, conf: str | Path):
 
 
 def _setup_windows_vars(data: dict[str, str]):
-    def set_env_var(key: str, value: list[str] | str):
-        import winreg
-
-        key_handle = winreg.OpenKey(
-            winreg.HKEY_CURRENT_USER, r"Environment", access=winreg.KEY_SET_VALUE
-        )
-        winreg.SetValueEx(key_handle, key, 0, winreg.REG_SZ, value)
-        winreg.CloseKey(key_handle)
+    import winreg
+    
+    key_handle = winreg.OpenKey(
+        winreg.HKEY_CURRENT_USER, r"Environment", access=winreg.KEY_SET_VALUE
+    )
 
     for k, v in data.items():
-        set_env_var(k, v)
-
+        winreg.SetValueEx(key_handle, k, 0, winreg.REG_SZ, v)
+        
+    winreg.CloseKey(key_handle)
 
 def _setup_linux_vars(data: dict[str, str], config: str):
     import os

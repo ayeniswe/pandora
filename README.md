@@ -15,9 +15,13 @@ poetry config virtualenvs.in-project true
 poetry install && poetry shell
 ```
 
-### 2. Run the app
+### 2. Run the CLI
 ```bash
-poetry run pandora 
+# preview changes without writing
+poetry run pandora env apply --file path/to/env --dry-run
+
+# apply variables
+poetry run pandora env apply --file path/to/env
 ```
 
 ## Packaging
