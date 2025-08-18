@@ -4,8 +4,9 @@ from pathlib import Path
 from .platforms.base import PlatformInfo
 
 
-class ErrorMessage:
+class ErrorMessage(Exception):
     def __init__(self, msg: str):
+        super().__init__(msg)
         self.msg = msg
 
 

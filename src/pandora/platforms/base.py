@@ -14,16 +14,15 @@ class OSType(str, Enum):
     LINUX = "linux"
     WINDOWS = "windows"
     MAC = "mac"
-    BSD = "bsd"
     OTHER = "other"
 
 
 class LinuxDistro(str, Enum):
-    """Linux distributions we care about first."""
+    """Linux distributions ids"""
 
     UBUNTU = "ubuntu"
     CENTOS = "centos"
-    OTHER = "other"
+    RHEL = "rhel"
 
 
 class Arch(str, Enum):
@@ -32,6 +31,7 @@ class Arch(str, Enum):
     X86_64 = "x86_64"
     X86 = "x86"
     ARM64 = "arm64"
+    ARMHF = "armhf"
     OTHER = "other"
 
 
@@ -41,18 +41,31 @@ class PlatformInfo:
 
     os: OSType
     arch: Arch
-    subtype: Optional[str] = None
+    subtype: Optional[LinuxDistro] = None
+
+    def __str__(self) -> str:
+        if self.os == OSType.LINUX:
+            return (
+                f"OS: {self.os.capitalize()} "
+                f"Distro: {self.subtype if self.subtype else 'other'} "
+                f"ARCH: {self.arch.upper()}"
+            )
+        return f"OS: {self.os.capitalize()} " f"ARCH: {self.arch}"
 
 
 def _detect_arch() -> Arch:
     machine = platform.machine().lower()
-    if machine in {"x86_64", "amd64"}:
-        return Arch.X86_64
-    if machine in {"x86", "i386", "i686"}:
-        return Arch.X86
-    if machine in {"arm64", "aarch64"}:
-        return Arch.ARM64
-    return Arch.OTHER
+    match machine:
+        case "x86_64" | "amd64":
+            return Arch.X86_64
+        case "x86" | "i386" | "i686":
+            return Arch.X86
+        case "arm64" | "aarch64":
+            return Arch.ARM64
+        case "armhf":
+            return Arch.ARMHF
+        case _:
+            return Arch.OTHER
 
 
 def detect_platform() -> PlatformInfo:
@@ -63,25 +76,24 @@ def detect_platform() -> PlatformInfo:
 
     if system == "linux":
         os_type = OSType.LINUX
-        subtype: Optional[str]
-        try:
-            import distro
+        subtype: Optional[LinuxDistro]
 
-            name = distro.id().lower()
-            if name == "ubuntu":
-                subtype = LinuxDistro.UBUNTU.value
-            elif name == "centos":
-                subtype = LinuxDistro.CENTOS.value
-            else:
-                subtype = LinuxDistro.OTHER.value
-        except Exception:
+        import distro
+
+        name = distro.id().lower()
+        if name == "ubuntu":
+            subtype = LinuxDistro.UBUNTU
+        elif name == "centos":
+            subtype = LinuxDistro.CENTOS
+        elif name == "rhel":
+            subtype = LinuxDistro.RHEL
+        else:
             subtype = None
+
         return PlatformInfo(os_type, arch, subtype)
 
     if system == "windows":
         return PlatformInfo(OSType.WINDOWS, arch)
     if system == "darwin":
         return PlatformInfo(OSType.MAC, arch)
-    if system.endswith("bsd"):
-        return PlatformInfo(OSType.BSD, arch)
     return PlatformInfo(OSType.OTHER, arch)
