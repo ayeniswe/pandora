@@ -70,7 +70,7 @@ def test_setup_windows_vars(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
     # Patch the module's reference to winreg
-    monkeypatch.setitem(sys.modules,"winreg", mock_winreg)
+    monkeypatch.setitem(sys.modules, "winreg", mock_winreg)
 
     _setup_windows_vars({"FOO": "bar", "BIN": r"C:\bin"})
 

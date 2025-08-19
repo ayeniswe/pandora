@@ -28,3 +28,4 @@ repos:
           - rich
           - questionary
           - pytest
+          - requests

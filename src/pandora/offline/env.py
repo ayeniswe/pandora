@@ -63,15 +63,16 @@ def setup_vars(info: PlatformInfo, data: dict[str, str]):
 
 def _setup_windows_vars(data: dict[str, str]):
     import winreg
-    
+
     key_handle = winreg.OpenKey(
         winreg.HKEY_CURRENT_USER, r"Environment", access=winreg.KEY_SET_VALUE
     )
 
     for k, v in data.items():
         winreg.SetValueEx(key_handle, k, 0, winreg.REG_SZ, v)
-        
+
     winreg.CloseKey(key_handle)
+
 
 def _setup_linux_vars(data: dict[str, str], config: str):
     import os
