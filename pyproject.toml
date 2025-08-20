@@ -23,6 +23,7 @@ rich = "^13.7.1"
 questionary = "^2.0.1"
 click = ">=8.1,<8.2"
 requests = "^2.32.4"
+poetry-plugin-shell = "^1.0.1"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.7.0"
@@ -30,7 +31,7 @@ poethepoet = "^0.32.0"
 pytest = "^8.4.1"
 
 [tool.poetry.scripts]
-pandora = "pandora_cli.__main__:app"
+pandora = "pandora_cli.__main__:cli"
 
 [tool.ruff]
 line-length = 100

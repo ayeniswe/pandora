@@ -5,23 +5,19 @@ Out-of-box dev env for any machine—online or offline. Skip setup headaches wit
 ## Development
 
 This project is managed with [Poetry](https://python-poetry.org/).
-> Note: `pip install poetry poetry-plugin-shell` if you have not already
+> Note: `pip install poetry` if you have not already
 
 ### 1. Bootstrap the environment
 ```bash
 # (optional) keep venv local to project
 poetry config virtualenvs.in-project true
 
-poetry install && poetry shell
+poetry install
 ```
 
 ### 2. Run the CLI
 ```bash
-# preview changes without writing
-poetry run pandora env apply --file path/to/env --dry-run
-
-# apply variables
-poetry run pandora env apply --file path/to/env
+poetry run pandora
 ```
 
 ## Packaging
