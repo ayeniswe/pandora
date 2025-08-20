@@ -20,3 +20,7 @@ class Error:
     @staticmethod
     def ConfigNotFound(config: str | Path) -> ErrorMessage:
         return ErrorMessage(f"config file not found: {config}")
+
+    @staticmethod
+    def InstallFailure(pkg: str) -> ErrorMessage:
+        return ErrorMessage(f"failed to install: {pkg}")
