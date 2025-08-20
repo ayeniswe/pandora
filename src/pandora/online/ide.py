@@ -1,4 +1,5 @@
 import logging
+import os
 import subprocess
 from enum import Enum
 from typing import List
@@ -23,9 +24,27 @@ def setup(info: PlatformInfo, selection: IDE):
     match selection:
         case IDE.VSCODE:
             return _install_vscode(info) if not is_package_installed("code") else Status.Success
-        # TODO implement rest below
         case IDE.VS:
-            return Status.Failure
+            match info.os:
+                case OSType.MAC:
+                    return (
+                        _install_vscommunity(info)
+                        if not os.path.isdir("/Applications/Visual Studio.app")
+                        else Status.Success
+                    )
+                case OSType.WINDOWS:
+                    return (
+                        _install_vscommunity(info)
+                        if not subprocess.check_output(
+                            ["vswhere", "-products", "Community", "-property", "installationPath"],
+                            text=True,
+                        ).strip()
+                        else Status.Success
+                    )
+                case _:
+                    raise Error.PlatformUnsupported(info)
+
+        # TODO implement
         case IDE.INTELLIJ:
             return Status.Failure
 
@@ -36,9 +55,9 @@ def add_extensions(selection: IDE, exts: List[str]):
             return _install_vscode_extensions(exts)
         # TODO implement rest below
         case IDE.VS:
-            return Status.Failure
+            ...
         case IDE.INTELLIJ:
-            return Status.Failure
+            ...
 
 
 def _build_vscode_download_url(info: PlatformInfo):
@@ -102,6 +121,70 @@ def _build_vscode_download_url(info: PlatformInfo):
     return url
 
 
+def _build_vscommunity_download_url(info: PlatformInfo):
+    match (info.os, info.subtype, info.arch):
+        case OSType.WINDOWS, None, Arch.X86_64:
+            return "https://aka.ms/vs/17/release/vs_community.exe"
+        case OSType.WINDOWS, None, Arch.X86:
+            # Last latest build (2019)
+            return "https://aka.ms/vs/16/release/vs_community.exe"
+        case (OSType.MAC, None, Arch.X86_64) | (OSType.MAC, None, Arch.ARM64):
+            return "https://aka.ms/vs/mac/download"
+        case _:
+            raise Error.PlatformUnsupported(info)
+
+
+def _install_vscommunity(info: PlatformInfo):
+    try:
+        url = _build_vscommunity_download_url(info)
+
+        pkg = "vscommunity"
+        if "mac" in url:
+            pkg += ".dmg"
+        else:
+            pkg += ".exe"
+
+        logger.debug("Downloading Visual Studio Community Edition package to %s", pkg)
+        with open(pkg, "wb") as f:
+            response = get(url, verify=False, timeout=30)
+            f.write(response.content)
+            logger.debug("Download complete, size: %s bytes", len(response.content))
+
+        match (info.os, info.subtype):
+            case (OSType.WINDOWS, None):
+                try:
+                    logger.debug("Running Windows installer")
+                    subprocess.run(
+                        [
+                            pkg,
+                            "--quiet",
+                            "--wait",
+                            "--norestart",
+                            "--nocache",
+                            "--add",
+                            "Microsoft.VisualStudio.Workload.CoreEditor",
+                        ],
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                    )
+                except subprocess.CalledProcessError:
+                    logger.error("Windows installation failed")
+                    raise
+            case (OSType.MAC, None):
+                # TODO implement vscommunity install for MAC
+                ...
+            case _:
+                # [UNREACHABLE_CASE]
+                ...
+
+    except (subprocess.CalledProcessError, ErrorMessage) as e:
+        logger.exception("Error during Visual Studio Community Edition installation: %s", e)
+        raise Error.InstallFailure("Visual Studio Code")
+
+    return Status.Success
+
+
 def _install_vscode(info: PlatformInfo):
     try:
         url = _build_vscode_download_url(info)
@@ -152,10 +235,12 @@ def _install_vscode(info: PlatformInfo):
                 except subprocess.CalledProcessError:
                     logger.error("RHEL/CentOS installation failed")
                     raise
+            case (OSType.MAC, None):
+                # TODO implement vscode install for MAC
+                ...
             case _:
-                # Unreachable case
-                logger.error("Reached supposedly unreachable case in Visual Studio Code installer")
-                return Status.Failure
+                # [UNREACHABLE_CASE]
+                ...
 
     except (subprocess.CalledProcessError, ErrorMessage) as e:
         logger.exception("Error during Visual Studio Code installation: %s", e)

@@ -103,19 +103,25 @@ def vscode(
 #         console.print("Intellij IDEA setup failed")
 
 
-# @cli_ide.command("vs")
-# def vs(
-#     extension: List[str] = typer.Option(
-#         None,
-#         "--ext",
-#         help="Optional extension(s) to install (comma-separated for multiple)"),
-# ) -> None:
-#     """Install/Modify Visual Studio with optional extensions."""
-#     console.print("Setting up Visual Studio")
-#     if ide.setup(IDE.VS, extension) == Status.Success:
-#         console.print("Visual Studio setup completed successfully")
-#     else:
-#         console.print("Visual Studio setup failed")
+@cli_ide.command("vs")
+def vs(
+    extension: List[str] = typer.Option(
+        None, "--ext", help="Optional extension(s) to install (comma-separated for multiple)"
+    ),
+) -> None:
+    """Install/Modify Visual Studio Community Edition with optional extensions."""
+    console.print("Setting up Visual Studio Community")
+
+    try:
+        status = ide.setup(IDE.VS, extension)
+    except ErrorMessage as e:
+        console.print(f"[bold red]{e}[/]", highlight=False)
+        return
+
+    if status == Status.Success:
+        console.print("[green]Visual Studio Community setup completed successfully[/]")
+    else:
+        console.print("[red]Visual Studio Community setup failed[/]")
 
 
 if __name__ == "__main__":
