@@ -172,8 +172,36 @@ def _install_vscommunity(info: PlatformInfo):
                     logger.error("Windows installation failed")
                     raise
             case (OSType.MAC, None):
-                # TODO implement vscommunity install for MAC
-                ...
+                try:
+                    logger.debug("Mounting macOS installer")
+                    subprocess.run(
+                        ["hdiutil", "attach", pkg],
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                    )
+                    logger.debug("Copying Visual Studio to Applications")
+                    subprocess.run(
+                        [
+                            "cp",
+                            "-r",
+                            "/Volumes/Visual Studio/Visual Studio.app",
+                            "/Applications/Visual Studio.app",
+                        ],
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                    )
+                    logger.debug("Detaching installer image")
+                    subprocess.run(
+                        ["hdiutil", "detach", "/Volumes/Visual Studio"],
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                    )
+                except subprocess.CalledProcessError:
+                    logger.error("macOS installation failed")
+                    raise
             case _:
                 # [UNREACHABLE_CASE]
                 ...
@@ -236,8 +264,17 @@ def _install_vscode(info: PlatformInfo):
                     logger.error("RHEL/CentOS installation failed")
                     raise
             case (OSType.MAC, None):
-                # TODO implement vscode install for MAC
-                ...
+                try:
+                    logger.debug("Running macOS installer (unzip)")
+                    subprocess.run(
+                        ["unzip", pkg, "-d", "/Applications"],
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                    )
+                except subprocess.CalledProcessError:
+                    logger.error("macOS installation failed")
+                    raise
             case _:
                 # [UNREACHABLE_CASE]
                 ...
