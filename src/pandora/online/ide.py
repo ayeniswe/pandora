@@ -181,9 +181,8 @@ def _install_vscommunity(info: PlatformInfo):
                         [
                             "cp",
                             "-r",
-                            "/Volumes/Visual Studio for Mac Installer/Install Visual Studio for Mac"
-                            ".app",
-                            "/Applications/Visual Studio.app",
+                            "/Volumes/Visual Studio for Mac Installer/Install Visual Studio for Mac.app",
+                            "/Applications/Install Visual Studio for Mac.app",
                         ],
                         check=True,
                         capture_output=True,
@@ -191,12 +190,51 @@ def _install_vscommunity(info: PlatformInfo):
                     )
                     logger.debug("Detaching installer image")
                     subprocess.run(
-                        ["hdiutil", "detach", "/Volumes/Visual Studio for Mac Installer"],
+                        [
+                            "hdiutil",
+                            "detach",
+                            "/Volumes/Visual Studio for Mac Installer",
+                        ],
                         check=True,
                         capture_output=True,
                         text=True,
                     )
-                    # TODO silent install dev package from installer
+                    logger.debug(
+                        "Launching Visual Studio installer to complete installation"
+                    )
+                    subprocess.run(
+                        [
+                            "open",
+                            "/Applications/Install Visual Studio for Mac.app",
+                        ],
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                    )
+
+                    logger.debug(
+                        "Automating Visual Studio for Mac Installer via AppleScript"
+                    )
+                    install_script = '''
+tell application "System Events"
+    repeat until exists (button "Install" of window "Visual Studio for Mac Installer" of process "Visual Studio for Mac Installer")
+        delay 1
+    end repeat
+    click button "Install" of window "Visual Studio for Mac Installer" of process "Visual Studio for Mac Installer"
+    repeat while exists (process "Visual Studio for Mac Installer")
+        delay 10
+    end repeat
+    repeat while exists (process "Visual Studio")
+        delay 10
+    end repeat
+end tell
+'''
+                    subprocess.run(
+                        ["osascript", "-e", install_script],
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                    )
                 except subprocess.CalledProcessError:
                     logger.error("macOS installation failed")
                     raise
