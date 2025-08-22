@@ -205,7 +205,11 @@ def test_install_vscommunity_mac(monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     assert calls[1] == [
         "cp",
         "-r",
-        "/Volumes/Visual Studio/Visual Studio.app",
-        "/Applications/Visual Studio.app",
+        "/Volumes/Visual Studio for Mac Installer/Install Visual Studio for Mac.app",
+        "/Applications/Install Visual Studio for Mac.app",
     ]
-    assert calls[2] == ["hdiutil", "detach", "/Volumes/Visual Studio"]
+    assert calls[2] == [
+        "hdiutil",
+        "detach",
+        "/Volumes/Visual Studio for Mac Installer",
+    ]
