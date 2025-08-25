@@ -224,9 +224,6 @@ tell application "System Events"
     repeat while exists (process "Visual Studio for Mac Installer")
         delay 10
     end repeat
-    repeat while exists (process "Visual Studio")
-        delay 10
-    end repeat
 end tell
 '''
                     subprocess.run(
