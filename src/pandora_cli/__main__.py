@@ -51,10 +51,21 @@ cli.add_typer(cli_env, name="env", help="Configure environment variables")
 
 @cli_env.command("apply")
 def apply(
-    file: Path = typer.Option(..., "--file", "-f", help="Path to env var file."),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Show changes without writing."),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output."),
-    yes: bool = typer.Option(False, "--yes", "-y", help="Apply without confirmation."),
+    file: Path = typer.Option(...,
+                              "--file",
+                              "-f",
+                              help="Path to env var file."),
+    dry_run: bool = typer.Option(False,
+                                 "--dry-run",
+                                 help="Show changes without writing."),
+    verbose: bool = typer.Option(False,
+                                 "--verbose",
+                                 "-v",
+                                 help="Enable verbose output."),
+    yes: bool = typer.Option(False,
+                             "--yes",
+                             "-y",
+                             help="Apply without confirmation."),
 ) -> None:
     env.apply(file, dry_run, verbose, yes, console)
 
@@ -65,14 +76,13 @@ cli.add_typer(cli_ide, name="ide", help="Install and configure IDEs")
 
 
 @cli_ide.command("vscode")
-def vscode(
-    extension: List[str] = typer.Option(
-        None,
-        "--ext",
-        help="Optional extensions to install. Use --ext [id|path] multiple times for multiple "
-        "extensions",
-    ),
-) -> None:
+def vscode(extension: List[str] = typer.Option(
+    None,
+    "--ext",
+    help=
+    "Optional extensions to install. Use --ext [id|path] multiple times for multiple "
+    "extensions",
+), ) -> None:
     """Install/Modify Visual Studio Code with optional extensions."""
     console.print("Setting up Visual Studio Code")
 
@@ -83,7 +93,8 @@ def vscode(
         return
 
     if status == Status.Success:
-        console.print("[green]Visual Studio Code setup completed successfully[/]")
+        console.print(
+            "[green]Visual Studio Code setup completed successfully[/]")
     else:
         console.print("[red]Visual Studio Code setup failed[/]")
 
@@ -105,21 +116,62 @@ def vscode(
 
 @cli_ide.command("vs")
 def vs(
+    dotnet_app: bool = typer.Option(
+        False,
+        "--dotnet-app",
+        help="Install .NET Multi-platform App UI workload"),
+    dotnet_wasm: bool = typer.Option(
+        False,
+        "--dotnet-wasm",
+        help="Install .NET WebAssembly build tools workload"),
+    tvos: bool = typer.Option(False, "--tvos", help="Install tvOS workload"),
+    native_cocoa: bool = typer.Option(
+        False,
+        "--native-cocoa",
+        help="Install macOS Cocoa (native apps) workload"),
+    android: bool = typer.Option(False,
+                                 "--android",
+                                 help="Install Android workload"),
+    ios: bool = typer.Option(False, "--ios", help="Install iOS workload"),
+    xamarin_cocoa: bool = typer.Option(
+        False,
+        "--xamarin-cocoa",
+        help="Install macOS Cocoa (Xamarin SDK) workload"),
+    all: bool = typer.Option(False, "--all", help="Install all workloads"),
     extension: List[str] = typer.Option(
-        None, "--ext", help="Optional extension(s) to install (comma-separated for multiple)"
+        None,
+        "--ext",
+        help="Optional extension(s) to install (comma-separated for multiple)"
     ),
 ) -> None:
     """Install/Modify Visual Studio Community Edition with optional extensions."""
     console.print("Setting up Visual Studio Community")
 
+    workloads: List[str] = []
+    if dotnet_app or all:
+        workloads.append("dotnet_app")
+    if dotnet_wasm or all:
+        workloads.append("dotnet_wasm")
+    if tvos or all:
+        workloads.append("tvos")
+    if native_cocoa or all:
+        workloads.append("native_cocoa")
+    if android or all:
+        workloads.append("android")
+    if ios or all:
+        workloads.append("ios")
+    if xamarin_cocoa or all:
+        workloads.append("xamarin_cocoa")
+
     try:
-        status = ide.setup(IDE.VS, extension)
+        status = ide.setup(IDE.VS, extension, set(workloads))
     except ErrorMessage as e:
         console.print(f"[bold red]{e}[/]", highlight=False)
         return
 
     if status == Status.Success:
-        console.print("[green]Visual Studio Community setup completed successfully[/]")
+        console.print(
+            "[green]Visual Studio Community setup completed successfully[/]")
     else:
         console.print("[red]Visual Studio Community setup failed[/]")
 

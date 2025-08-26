@@ -2,14 +2,24 @@ import logging
 import os
 import subprocess
 from enum import Enum
-from typing import List
+from typing import List, Set
 
 from requests import get
 
 from pandora.common import Status
 from pandora.errors import Error, ErrorMessage
 from pandora.platforms.base import Arch, LinuxDistro, OSType, PlatformInfo
-from pandora.utils import is_package_installed
+from pandora.utils.osa import (
+    activate,
+    click_button,
+    down,
+    osa_return,
+    spacebar,
+    tab,
+    tab_back_to_window,
+    wait_for_element,
+)
+from pandora.utils.utils import is_package_installed
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +30,7 @@ class IDE(Enum):
     INTELLIJ = 2
 
 
-def setup(info: PlatformInfo, selection: IDE):
+def setup(info: PlatformInfo, selection: IDE, workloads: Set[str] = set()):
     match selection:
         case IDE.VSCODE:
             return _install_vscode(
@@ -29,11 +39,11 @@ def setup(info: PlatformInfo, selection: IDE):
             match info.os:
                 case OSType.MAC:
                     return (
-                        _install_vscommunity(info)
+                        _install_vscommunity(info, workloads)
                         if not os.path.isdir("/Applications/Visual Studio.app")
                         else Status.Success)
                 case OSType.WINDOWS:
-                    return (_install_vscommunity(info)
+                    return (_install_vscommunity(info, workloads)
                             if not subprocess.check_output(
                                 [
                                     "vswhere", "-products", "Community",
@@ -128,7 +138,7 @@ def _build_vscommunity_download_url(info: PlatformInfo):
             raise Error.PlatformUnsupported(info)
 
 
-def _install_vscommunity(info: PlatformInfo):
+def _install_vscommunity(info: PlatformInfo, workloads: Set[str] = set()):
     try:
         url = _build_vscommunity_download_url(info)
 
@@ -181,7 +191,8 @@ def _install_vscommunity(info: PlatformInfo):
                         [
                             "cp",
                             "-r",
-                            "/Volumes/Visual Studio for Mac Installer/Install Visual Studio for Mac.app",
+                            "/Volumes/Visual Studio for Mac Installer/Install Visual Studio for Mac"
+                            ".app",
                             "/Applications/Install Visual Studio for Mac.app",
                         ],
                         check=True,
@@ -215,25 +226,57 @@ def _install_vscommunity(info: PlatformInfo):
                     logger.debug(
                         "Automating Visual Studio for Mac Installer via AppleScript"
                     )
-                    install_script = '''
-tell application "System Events"
-    repeat until exists (button "Install" of window "Visual Studio for Mac Installer" of process "Visual Studio for Mac Installer")
-        delay 1
-    end repeat
-    click button "Install" of window "Visual Studio for Mac Installer" of process "Visual Studio for Mac Installer"
-    repeat while exists (process "Visual Studio for Mac Installer")
-        delay 10
-    end repeat
-end tell
-'''
-                    subprocess.run(
-                        ["osascript", "-e", install_script],
-                        check=True,
-                        capture_output=True,
-                        text=True,
+                    # Wait for the installer window to fully appear
+                    APP_NAME = "Visual Studio for Mac Installer"
+                    if not wait_for_element(
+                            f'window "{APP_NAME}" of process "{APP_NAME}"',
+                            timeout=120):
+                        logger.error("Timed out waiting for installer window")
+                        raise Error.InstallFailure(
+                            "Visual Studio Community (macOS)")
+                    # Select window
+                    activate(APP_NAME)
+                    # Wait for Terms to be visible
+                    wait_for_element(
+                        f'sheet 1 of window "{APP_NAME}" of process "{APP_NAME}"'
                     )
+                    # Accept Terms
+                    osa_return()
+                    # Select options
+                    auto_ui_selection(
+                        dotnet_app="dotnet_app" in workloads,
+                        dotnet_wasm="dotnet_wasm" in workloads,
+                        tvos="tvos" in workloads,
+                        native_cocoa="native_cocoa" in workloads,
+                        android="android" in workloads,
+                        ios="ios" in workloads,
+                        xamarin_cocoa="xamarin_cocoa" in workloads,
+                    )
+                    # Wait until the Install button is visible
+                    if not wait_for_element(
+                            f'button "Install" of window "{APP_NAME}" of process "{APP_NAME}"',
+                            timeout=180):
+                        logger.error("Timed out waiting for Install button")
+                        raise Error.InstallFailure(
+                            "Visual Studio Community (macOS)")
+                    # Start installing
+                    click_button("Install", APP_NAME)
+                    # Do not autostart app
+                    tab()
+                    tab()
+                    spacebar()
+                    # Wait until the installation finishes
+                    if not wait_for_element(
+                            f'button "Done" of window "{APP_NAME}" of process "{APP_NAME}"',
+                            timeout=1800):
+                        logger.error("Timed out waiting for Done button")
+                        raise Error.InstallFailure(
+                            "Visual Studio Community (macOS)")
+                    # Close installer
+                    click_button("Done", APP_NAME)
+
                 except subprocess.CalledProcessError:
-                    logger.error("macOS installation failed")
+                    logger.error("MacOS installation failed")
                     raise
             case _:
                 # [UNREACHABLE_CASE]
@@ -242,7 +285,7 @@ end tell
     except (subprocess.CalledProcessError, ErrorMessage) as e:
         logger.exception(
             "Error during Visual Studio Community Edition installation: %s", e)
-        raise Error.InstallFailure("Visual Studio Code")
+        raise Error.InstallFailure("Visual Studio Community")
 
     return Status.Success
 
@@ -316,7 +359,7 @@ def _install_vscode(info: PlatformInfo):
                         text=True,
                     )
                 except subprocess.CalledProcessError:
-                    logger.error("macOS installation failed")
+                    logger.error("MacOS installation failed")
                     raise
             case _:
                 # [UNREACHABLE_CASE]
@@ -354,3 +397,72 @@ def _install_vscode_extensions(exts: List[str]):
         return Status.Failure
 
     return Status.Success
+
+
+def auto_ui_selection(dotnet_app: bool = False,
+                      dotnet_wasm: bool = False,
+                      tvos: bool = False,
+                      native_cocoa: bool = False,
+                      android: bool = False,
+                      ios: bool = False,
+                      xamarin_cocoa: bool = False):
+    tab_to_new_window = False
+    """
+    Automates selection of spacebares in the Visual Studio for Mac Installer UI.
+
+    Parameters:
+        dotnet_app (bool): Whether to select the .NET Multi-platform App UI option.
+        dotnet_wasm (bool): Whether to select the .NET WebAssembly build tools option.
+        tvos (bool): Whether to select the tvOS option.
+        native_cocoa (bool): Whether to select the macOS (Cocoa for native apps) option.
+        android (bool): Whether to select the Android option.
+        ios (bool): Whether to select the iOS option.
+        xamarin_cocoa (bool): Whether to select the macOS (Cocoa for apps w/ Xamarin SDK) option.
+    """
+    # Start at ".Net Multi-platform App UI" option
+    tab_back_to_window()
+
+    # Select .Net Multi-platform App UI? (include Android and iOS option)
+    down()
+    if dotnet_app:
+        spacebar()
+        tab_to_new_window = True
+
+    # Select .Net WebAssembly build tools?
+    down()
+    if dotnet_wasm:
+        spacebar()
+
+    # Select tvOS?
+    down()
+    if tvos:
+        spacebar()
+
+    # Select macOS (Cocoa for native apps)?
+    down()
+    if native_cocoa:
+        spacebar()
+
+    # Select Android?
+    down()
+    if android and not dotnet_app:
+        spacebar()
+    else:
+        tab_to_new_window = True
+
+    # Select iOS?
+    down()
+    if ios and not dotnet_app:
+        if tab_to_new_window:
+            tab_back_to_window()
+            tab_to_new_window = False
+            spacebar()
+    else:
+        tab_to_new_window = True
+
+    # Select macOS (Cocoa for apps w/ Xamarin SDK)?
+    down()
+    if xamarin_cocoa:
+        if tab_to_new_window:
+            tab_back_to_window()
+            spacebar()
