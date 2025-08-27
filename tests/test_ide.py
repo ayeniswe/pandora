@@ -6,6 +6,7 @@ import subprocess
 import sys
 import types
 from pathlib import Path
+from typing_extensions import List
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
@@ -82,7 +83,9 @@ def test_build_vscommunity_download_url_unsupported() -> None:
 
 
 def test_setup_vscode_calls_install(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("pandora.online.ide.is_package_installed", lambda _: False)
+    def fake_is_package_installed(package: str):
+        return False
+    monkeypatch.setattr("pandora.online.ide.is_package_installed", fake_is_package_installed)
     called = {}
 
     def fake_install(info: PlatformInfo) -> Status:
@@ -95,10 +98,12 @@ def test_setup_vscode_calls_install(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_setup_vs_mac_calls_install(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(os.path, "isdir", lambda _: False)
+    def fake_isdir(s: str):
+        return False
+    monkeypatch.setattr(os.path, "isdir", fake_isdir)
     called = {}
 
-    def fake_install(info: PlatformInfo) -> Status:
+    def fake_install(info: PlatformInfo, workloads: List[str]) -> Status:
         called["invoked"] = True
         return Status.Success
 
@@ -135,9 +140,9 @@ def test_add_extensions_other_returns_none() -> None:
 
 
 def test_install_vscode_extensions_success(monkeypatch: pytest.MonkeyPatch) -> None:
-    calls = []
+    calls: List[List[str]] = []
 
-    def fake_run(cmd, check, capture_output, text):
+    def fake_run(cmd: List[str], check: bool, capture_output: bool, text: bool):
         calls.append(cmd)
         return types.SimpleNamespace(stdout="")
 
@@ -151,7 +156,7 @@ def test_install_vscode_extensions_success(monkeypatch: pytest.MonkeyPatch) -> N
 
 
 def test_install_vscode_extensions_error_output(monkeypatch: pytest.MonkeyPatch) -> None:
-    def fake_run(cmd, check, capture_output, text):
+    def fake_run(cmd: List[str], check: bool, capture_output: bool, text: bool):
         return types.SimpleNamespace(stdout="Error: something")
 
     monkeypatch.setattr("pandora.online.ide.subprocess.run", fake_run)
@@ -160,7 +165,7 @@ def test_install_vscode_extensions_error_output(monkeypatch: pytest.MonkeyPatch)
 
 
 def test_install_vscode_extensions_subprocess_error(monkeypatch: pytest.MonkeyPatch) -> None:
-    def fake_run(cmd, check, capture_output, text):
+    def fake_run(cmd: List[str], check: bool, capture_output: bool, text: bool):
         raise subprocess.CalledProcessError(1, cmd)
 
     monkeypatch.setattr("pandora.online.ide.subprocess.run", fake_run)
@@ -170,15 +175,17 @@ def test_install_vscode_extensions_subprocess_error(monkeypatch: pytest.MonkeyPa
 
 def test_install_vscode_mac(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     info = PlatformInfo(OSType.MAC, Arch.X86_64, None)
-    calls = []
+    calls: List[List[str]] = []
 
-    def fake_run(cmd, check, capture_output, text):
+    def fake_run(cmd: List[str], check: bool, capture_output: bool, text: bool):
         calls.append(cmd)
         return types.SimpleNamespace(stdout="")
+    def fake_get(url: str, verify: bool, timeout: float):
+        return types.SimpleNamespace(content=b"data")
 
     monkeypatch.setattr("pandora.online.ide.subprocess.run", fake_run)
     monkeypatch.setattr(
-        "pandora.online.ide.get", lambda url, verify, timeout: types.SimpleNamespace(content=b"data")
+        "pandora.online.ide.get", fake_get
     )
     monkeypatch.chdir(tmp_path)
     status = _install_vscode(info)
@@ -188,15 +195,20 @@ def test_install_vscode_mac(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> 
 
 def test_install_vscommunity_mac(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     info = PlatformInfo(OSType.MAC, Arch.X86_64, None)
-    calls = []
+    calls: List[List[str]] = []
 
-    def fake_run(cmd, check, capture_output, text):
+    def fake_run(cmd: List[str], check: bool, capture_output: bool, text: bool):
         calls.append(cmd)
-        return types.SimpleNamespace(stdout="")
-
+        return types.SimpleNamespace(stdout="FOUND")
+    def fake_check_output(cmd: List[str], text: bool):
+        calls.append(cmd)
+        return "FOUND"
+    def fake_get(url: str, verify: bool, timeout: float):
+        return types.SimpleNamespace(content=b"data")
     monkeypatch.setattr("pandora.online.ide.subprocess.run", fake_run)
+    monkeypatch.setattr("pandora.utils.osa.subprocess.check_output", fake_check_output)
     monkeypatch.setattr(
-        "pandora.online.ide.get", lambda url, verify, timeout: types.SimpleNamespace(content=b"data")
+        "pandora.online.ide.get", fake_get
     )
     monkeypatch.chdir(tmp_path)
     status = _install_vscommunity(info)
