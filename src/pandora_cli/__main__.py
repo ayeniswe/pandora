@@ -10,10 +10,11 @@ from typing import List
 import typer
 from pandora.common import Status
 from pandora.errors import ErrorMessage
-from pandora.online.ide import IDE
 from rich.console import Console
 
-from pandora_cli import env, ide
+from pandora.task.ide.builder import IDESelection
+from pandora_cli import env
+from pandora_cli import ide
 
 
 def version_callback(value: bool) -> bool:
@@ -87,7 +88,7 @@ def vscode(extension: List[str] = typer.Option(
     console.print("Setting up Visual Studio Code")
 
     try:
-        status = ide.setup(IDE.VSCODE, extension)
+        status = ide.full_setup(IDESelection.VSCODE, extension)
     except ErrorMessage as e:
         console.print(f"[bold red]{e}[/]", highlight=False)
         return
@@ -164,7 +165,7 @@ def vs(
         workloads.append("xamarin_cocoa")
 
     try:
-        status = ide.setup(IDE.VS, extension, set(workloads))
+        status = ide.full_setup(IDESelection.VS, extension, set(workloads))
     except ErrorMessage as e:
         console.print(f"[bold red]{e}[/]", highlight=False)
         return

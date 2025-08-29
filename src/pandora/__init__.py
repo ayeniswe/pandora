@@ -8,9 +8,9 @@ from __future__ import annotations
 import logging
 import sys
 
-from . import errors, offline, online, platforms
+from . import errors, offline, platforms, task, utils
 
-__all__ = ["offline", "online", "platforms", "errors"]
+__all__ = ["offline","task", "platforms", "errors", "utils"]
 
 logging.basicConfig(
     level=logging.DEBUG,

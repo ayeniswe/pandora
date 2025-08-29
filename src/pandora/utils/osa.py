@@ -1,5 +1,7 @@
+import logging
 import subprocess
 
+logger = logging.getLogger(__name__)
 
 def osa(script: str) -> str:
     """

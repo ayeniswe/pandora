@@ -1,4 +1,7 @@
+import logging
 import shutil
+
+logger = logging.getLogger(__name__)
 
 
 def is_package_installed(package: str):
